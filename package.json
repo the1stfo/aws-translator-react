@@ -1,0 +1,32 @@
+{
+  "name": "@the1stfo/aws-translator-react",
+  "version": "0.1",  
+  "description": "AWS Translation tool written in React",
+  "main": "dist/index.umd.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "build": "vite build && tsc",
+    "release": "vite build && tsc && npm publish"
+  },
+  "author": "Forrest McCorkle",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-translate": "^3.995.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.58",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.4"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0"
+  },
+  "publishConfig": {
+    "the1stfo:registry": "https://npm.pkg.github.com"
+  }
+}

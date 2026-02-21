@@ -1,0 +1,19 @@
+{
+ "compilerOptions": {
+   "target": "es2016",
+   "types": ["vite/client"],
+   "esModuleInterop": true,
+   "forceConsistentCasingInFileNames": true,
+   "strict": true,
+   "skipLibCheck": true,
+
+   "jsx": "react",
+   "module": "ESNext",
+   "declaration": true,
+   "sourceMap": true,
+   "outDir": "dist",
+   "moduleResolution": "node",
+   "allowSyntheticDefaultImports": true,
+   "emitDeclarationOnly": true
+ }
+}
