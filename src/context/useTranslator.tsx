@@ -21,7 +21,15 @@ export type TranslatorConfig = {
   learningMode?: boolean;
 };
 
+function prepareTextForTranslation(value: string) {
+  if (!value) return value;
+  // Replace <sup>X</sup> (where X is a single non-whitespace character)
+  // with <sup translate="no">X</sup>, but leave existing attributes alone.
+  return value.replaceAll(/<sup>\s*([^<>\s])\s*<\/sup>/g, '<sup translate="no">$1</sup>');
+}
+
 export function useTranslator(config: TranslatorConfig): ITranslator {
+  const [langsLoaded, setLangsLoaded] = useState(false);
   const { awsClientConfig, defaultLanguage, learningMode } = config;
   const client = useRef(new TranslateClient(awsClientConfig));
   const translationsRef = useRef<any>({});
@@ -30,26 +38,37 @@ export function useTranslator(config: TranslatorConfig): ITranslator {
   const [storedLangs, setStoredLangs] = useState<any>({});
 
   const loadTranslations = useCallback((languageCode: languageCodes, storedLangs: any) => {
-    setTranslations({ ...storedLangs[currentLanguage] });
-    translationsRef.current = {};
-    Object.keys(storedLangs[currentLanguage]).forEach((key) => {
-      translationsRef.current[key] = true;
-    });
+    if (storedLangs[languageCode]) {
+      setTranslations({ ...storedLangs[languageCode] });
+      translationsRef.current = {};
+      Object.keys(storedLangs[languageCode]).forEach((key) => {
+        translationsRef.current[key] = true;
+      });
+    } else {
+      translationsRef.current = {};
+      setTranslations({});
+    }
   }, []);
 
   useEffect(() => {
-    fetch("./langs.json").then((res) => {
-      if (res.status) {
-        res.json().then((data) => {
-          setStoredLangs(data);
-          loadTranslations(currentLanguage, data);
-        });
-      }
-    });
+    fetch("/langs.json")
+      .then((res) => {
+        if (res.status) {
+          res.json().then((data) => {
+            setStoredLangs(data);
+            loadTranslations(currentLanguage, data);
+            setLangsLoaded(true);
+          });
+        } else {
+          setLangsLoaded(true);
+        }
+      })
+      .catch(() => setLangsLoaded(true));
   }, []);
 
   const translator = useMemo(() => {
     async function translateText(text: string, sourceLang: string, targetLang: string) {
+      if (!langsLoaded) return;
       if (!text?.length) return;
       if (!client.current) return;
       if (!translationsRef.current) return;
@@ -68,11 +87,13 @@ export function useTranslator(config: TranslatorConfig): ITranslator {
         translationsRef.current[hash] = true;
         const data = await client.current.send(command);
         if (data.TranslatedText) {
-          setTranslations((prev: any) => ({ ...prev, [hash]: data.TranslatedText }));
+          const translatedText = data.TranslatedText;
+
+          setTranslations((prev: any) => ({ ...prev, [hash]: translatedText }));
 
           if (learningMode) {
             const languages: any = JSON.parse(localStorage.getItem("langs") ?? "{}");
-            languages[targetLang] = { ...languages[targetLang], [hash]: data.TranslatedText };
+            languages[targetLang] = { ...languages[targetLang], [hash]: translatedText };
             localStorage.setItem("langs", JSON.stringify(languages));
           }
         }
@@ -85,9 +106,11 @@ export function useTranslator(config: TranslatorConfig): ITranslator {
 
     const translate = (value: string) => {
       if (currentLanguage === "en") return value;
-      translateText(value, "en", currentLanguage);
 
-      const hash = sha256(value);
+      const text = prepareTextForTranslation(value);
+      translateText(text, "en", currentLanguage);
+
+      const hash = sha256(text);
       return translations[hash];
     };
 
